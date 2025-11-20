@@ -27,4 +27,4 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global lfs.http://oauth2:$MODELSCOPE_TOKEN@www.modelscope.cn/studios/OhMyDearAI/hawarma-preview.git/info/lfs.locksverify true
           git remote add modelscope https://oauth2:$MODELSCOPE_TOKEN@modelscope.cn/studios/OhMyDearAI/UVR5_UI.git
-          git push modelscope modelscope-deploy:master --force
+          git push modelscope main:master --force
