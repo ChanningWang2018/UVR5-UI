@@ -2,7 +2,7 @@ name: Deploy to ModelScope Studio
 
 on:
   push:
-    branches: [modelscope-deploy]
+    branches: [main]
 
 jobs:
   deploy-to-modelscope:
