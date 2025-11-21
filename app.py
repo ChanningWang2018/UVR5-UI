@@ -15,6 +15,8 @@ from audio_separator.separator import Separator
 from assets.i18n.i18n import I18nAuto
 from argparse import ArgumentParser
 from assets.presence.discord_presence import RPCManager, track_presence
+from modelscope.hub.file_download import model_file_download
+
 
 i18n = I18nAuto()
 
@@ -382,17 +384,6 @@ def alternative_model_downloader(
 ):
     logs.clear()
 
-    def mirror_url(url: str) -> str:
-        """
-        Rewrite Hugging-Face URLs to the ModelScope mirror on-the-fly.
-        Leaves every other URL untouched.
-        """
-        if url.startswith("https://huggingface.co/Eddycrack864/"):
-            url = url.replace(
-                "huggingface.co/Eddycrack864", "www.modelscope.cn/models/OhMyDearAI", 1
-            ).replace("/resolve/main/", "/resolve/master/", 1)
-        return url
-
     with open(models_file, "r", encoding="utf-8") as file:
         model_data = json.load(file)
 
@@ -406,9 +397,7 @@ def alternative_model_downloader(
     elif isinstance(entry, dict):
         urls = entry.get(source, []) if source in entry else []
         if not urls:
-            urls = (
-                entry.get("HuggingFace") or entry.get("Github") or []
-            )  # HuggingFace as first priority
+            urls = entry.get("HuggingFace") or entry.get("Github") or []
     else:
         return f"Model entry for '{key}' has an unexpected format."
 
@@ -422,8 +411,8 @@ def alternative_model_downloader(
 
     for i, url in enumerate(urls):
         filename = os.path.basename(urllib.parse.urlparse(url).path)
+        category = urllib.parse.urlparse(url).path.split("/")[-2]
         full_name = os.path.join(output_dir, filename)
-        url = mirror_url(url)  # Adjust for ModelScope links
 
         if os.path.exists(full_name):
             logs.append(f"{filename} already exists.")
@@ -434,57 +423,13 @@ def alternative_model_downloader(
             desc=f"Starting download of {filename} ({i + 1}/{total_files})",
         )
 
-        if method == "wget":
-            cmd = ["wget", "--progress=bar:force", "-O", full_name, url]
-        elif method == "curl":
-            cmd = ["curl", "-L", "-#", "-o", full_name, url]
-        else:
-            logs.append(f"Unsupported download method: {method}")
-            continue
-
         try:
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                bufsize=1,
+            model_file_download(
+                model_id="OhMyDearAI/audio-separator-models",
+                file_path=f"{category}/{filename}",
+                local_dir=output_dir,
             )
-
-            # read stderr lines for progress
-            for line in process.stderr:
-                if method == "wget" and "%" in line:
-                    try:
-                        percent = int(line.strip().split("%")[0].split()[-1])
-                        file_progress = percent / 100.0
-                        total_progress = (i + file_progress) / total_files
-                        progress(
-                            total_progress,
-                            desc=f"File {i + 1}/{total_files}: {filename} ({percent}%)",
-                        )
-                    except (ValueError, IndexError):
-                        pass
-                elif method == "curl" and "#" in line:
-                    try:
-                        hash_count = line.count("#")
-                        file_progress = min(hash_count / 50.0, 1.0)
-                        total_progress = (i + file_progress) / total_files
-                        percent = int(file_progress * 100)
-                        progress(
-                            total_progress,
-                            desc=f"File {i + 1}/{total_files}: {filename} ({percent}%)",
-                        )
-                    except Exception:
-                        pass
-
-            process.wait()
-            if process.returncode != 0:
-                logs.append(f"Error downloading {filename}")
-            else:
-                logs.append(f"{filename} downloaded successfully!")
-                progress(
-                    (i + 1) / total_files, desc=f"File {i + 1}/{total_files} completed"
-                )
+            logs.append(f"Successfully downloaded {filename}.")
 
         except Exception as e:
             logs.append(f"Error running download command: {str(e)}")
