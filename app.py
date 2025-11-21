@@ -382,6 +382,17 @@ def alternative_model_downloader(
 ):
     logs.clear()
 
+    def mirror_url(url: str) -> str:
+        """
+        Rewrite Hugging-Face URLs to the ModelScope mirror on-the-fly.
+        Leaves every other URL untouched.
+        """
+        if url.startswith("https://huggingface.co/Eddycrack864/"):
+            url = url.replace(
+                "huggingface.co/Eddycrack864", "www.modelscope.cn/models/OhMyDearAI", 1
+            ).replace("/resolve/main/", "/resolve/master/", 1)
+        return url
+
     with open(models_file, "r", encoding="utf-8") as file:
         model_data = json.load(file)
 
@@ -412,9 +423,7 @@ def alternative_model_downloader(
     for i, url in enumerate(urls):
         filename = os.path.basename(urllib.parse.urlparse(url).path)
         full_name = os.path.join(output_dir, filename)
-        url = url.replace(
-            "huggingface.co/Eddycrack864", "www.modelscope.cn/models/OhMyDearAI"
-        ).replace("/main/", "/master/")  # Adjust for ModelScope links
+        url = mirror_url(url)  # Adjust for ModelScope links
 
         if os.path.exists(full_name):
             logs.append(f"{filename} already exists.")
