@@ -412,7 +412,9 @@ def alternative_model_downloader(
     for i, url in enumerate(urls):
         filename = os.path.basename(urllib.parse.urlparse(url).path)
         category = urllib.parse.urlparse(url).path.split("/")[-2]
-        full_name = os.path.join(output_dir, filename)
+        full_name = os.path.join(
+            models_dir, filename
+        )  # replace output_dir with models_dir
 
         if os.path.exists(full_name):
             logs.append(f"{filename} already exists.")
@@ -427,8 +429,8 @@ def alternative_model_downloader(
             model_file_download(
                 model_id="OhMyDearAI/audio-separator-models",
                 file_path=f"{category}/{filename}",
-                local_dir=output_dir,
-            )
+                local_dir=models_dir,
+            )  # replace output_dir with models_dir
             logs.append(f"Successfully downloaded {filename}.")
 
         except Exception as e:
