@@ -1,13 +1,13 @@
 {
   "theme": {
     "file": null,
-    "class": "NoCrypt/miku",
-    "mode": "dark"
+    "class": "gradio/seafoam",
+    "mode": "light"
   },
   "lang": {
     "override": false,
     "selected_lang": "en_US"
   },
-  "discord_presence": true,
+  "discord_presence": false,
   "load_custom_settings": false
 }
