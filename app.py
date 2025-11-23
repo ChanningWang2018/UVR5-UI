@@ -1471,7 +1471,13 @@ with gr.Blocks(
     gr.Markdown("<h1> 🎵 UVR5 UI 🎵 </h1>")
     gr.Markdown(
         i18n(
-            "If you like UVR5 UI you can star my repo on [GitHub](https://github.com/Eddycrack864/UVR5-UI)"
+            "This is a fork of [UVR5-UI by Eddycrack864](https://github.com/Eddycrack864/UVR5-UI)"
+        )
+    )
+    gr.Markdown(i18n("Adapted for ModelScope Studio"))
+    gr.Markdown(
+        i18n(
+            "If you like this fork, you can star it on [GitHub](https://github.com/ChanningWang2018/UVR5-UI)"
         )
     )
     gr.Markdown(

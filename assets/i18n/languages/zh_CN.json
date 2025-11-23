@@ -1,5 +1,8 @@
 {
-    "If you like UVR5 UI you can star my repo on [GitHub](https://github.com/Eddycrack864/UVR5-UI)": "喜欢 UVR5 UI 的话，可以在 [GitHub](https://github.com/Eddycrack864/UVR5-UI) 上标星我的仓库",
+    "If you like UVR5 UI you can star the repo on [GitHub](https://github.com/Eddycrack864/UVR5-UI)": "喜欢 UVR5 UI 的话，可以在 [GitHub](https://github.com/Eddycrack864/UVR5-UI) 上标星仓库",
+    "This is a fork of [UVR5-UI by Eddycrack864](https://github.com/Eddycrack864/UVR5-UI)": "这是 [UVR5-UI by Eddycrack864](https://github.com/Eddycrack864/UVR5-UI) 的一个分支",
+    "Adapted for ModelScope Studio": "适配魔搭创空间",
+    "If you like this fork, you can star it on [GitHub](https://github.com/ChanningWang2018/UVR5-UI)": "如果你喜欢这个分支，可以在 [GitHub](https://github.com/ChanningWang2018/UVR5-UI) 上标星",
     "Try UVR5 UI on Hugging Face with A100 [here](https://huggingface.co/spaces/TheStinger/UVR5_UI)": "在 Huggingface 上尝试 A100 的 UVR5 UI [这里](https://huggingface.co/spaces/TheStinger/UVR5_UI)",
     "Select the model": "选择模型",
     "Select the output format": "选择输出格式",
@@ -49,7 +52,7 @@
     "Normalization threshold": "归一化阈值",
     "The threshold for audio normalization": "音频归一化的阈值",
     "Amplification threshold": "放大量阈值",
-    "The threshold for audio amplification": "音频放大量阈值",
+    "The threshold for audio amplification": "音频放大量的阈值",
     "Hop length": "跳跃长度",
     "Usually called stride in neural networks; only change if you know what you're doing": "通常称为神经网络中的步幅；仅在你知道自己在做什么的情况下更改",
     "Balance quality and speed. 1024 = fast but lower, 320 = slower but better quality": "平衡质量和速度。1024 = 快但质量较低，320 = 慢但质量更好",
