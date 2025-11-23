@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import shutil
 import sys
 import subprocess
 import re
@@ -426,12 +428,18 @@ def alternative_model_downloader(
         )
 
         try:
-            model_dir = model_file_download(
+            tmp = model_file_download(
                 model_id="OhMyDearAI/audio-separator-models",
                 file_path=f"{category}/{filename}",
                 local_dir=models_dir,
             )  # replace output_dir with models_dir
-            logs.append(f"Successfully downloaded {filename}. {model_dir}")
+            src = Path(tmp)  # models_dir/category/filename
+            dst = Path(models_dir) / filename  # models_dir/filename
+            shutil.move(str(src), str(dst))
+
+            # 3. 删掉空出来的 category 目录
+            src.parent.rmdir()
+            logs.append(f"Successfully downloaded {filename}. Saved at {dst}")
 
         except Exception as e:
             logs.append(f"Error running download command: {str(e)}")
