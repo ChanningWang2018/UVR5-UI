@@ -1,24 +1,25 @@
-import os
-from pathlib import Path
-import shutil
-import sys
-import subprocess
-import re
-import platform
-import torch
-import logging
-import yt_dlp
-import json
 import copy
-import gradio as gr
+import json
+import logging
+import os
+import platform
+import re
+import shutil
+import subprocess
+import sys
 import urllib.parse
-import assets.themes.loadThemes as loadThemes
-from audio_separator.separator import Separator
-from assets.i18n.i18n import I18nAuto
 from argparse import ArgumentParser
-from assets.presence.discord_presence import RPCManager, track_presence
+from pathlib import Path
+
+import gradio as gr
+import torch
+import yt_dlp
+from audio_separator.separator import Separator
 from modelscope.hub.file_download import model_file_download
 
+import assets.themes.loadThemes as loadThemes
+from assets.i18n.i18n import I18nAuto
+from assets.presence.discord_presence import RPCManager, track_presence
 
 i18n = I18nAuto()
 
@@ -381,6 +382,82 @@ def save_lang_settings(selected_language):
         json.dump(config, file, indent=2)
 
 
+def ensure_model_downloaded(model_filename, progress=None):
+    """
+    确保模型文件存在，如果不存在则使用ModelScope下载
+
+    Args:
+        model_filename: 模型文件名
+        progress: Gradio进度对象
+
+    Returns:
+        (success: bool, model_path: str or error_message: str)
+    """
+    model_path = os.path.join(models_dir, model_filename)
+
+    # 如果文件已存在，直接返回
+    if os.path.exists(model_path):
+        return True, model_path
+
+    # 文件不存在，需要从models.json查找并下载
+    try:
+        gr.Info(
+            f"This is the first time the {model_filename} model is being used. The separation will take a little longer because the model needs to be downloaded."
+        )
+        with open(models_file, "r", encoding="utf-8") as file:
+            model_data = json.load(file)
+
+        # 查找包含该文件名的模型条目和对应的URL
+        target_url = None
+        target_category = None
+
+        for key, entry in model_data.items():
+            if isinstance(entry, dict):
+                # 使用HuggingFace URL来获取category信息
+                huggingface_urls = entry.get("HuggingFace", [])
+                for url in huggingface_urls:
+                    if model_filename in url:
+                        target_url = url
+                        break
+
+                if target_url:
+                    # 从URL中提取category
+                    target_category = urllib.parse.urlparse(target_url).path.split("/")[
+                        -2
+                    ]
+                    break
+
+        if not target_url or not target_category:
+            return False, f"Model '{model_filename}' not found in models.json"
+
+        # 使用ModelScope下载
+        if progress:
+            progress(0.5, desc=f"Downloading {model_filename}...")
+
+        # 使用与alternative_model_downloader相同的逻辑
+        tmp = model_file_download(
+            model_id="OhMyDearAI/audio-separator-models",
+            file_path=f"{target_category}/{model_filename}",
+            local_dir=models_dir,
+        )
+
+        # 移动文件到正确位置（与alternative_model_downloader逻辑一致）
+        src = Path(tmp)
+        dst = Path(models_dir) / model_filename
+        shutil.move(str(src), str(dst))
+
+        # 删掉空出来的category目录
+        src.parent.rmdir()
+
+        if progress:
+            progress(1.0, desc=f"Downloaded {model_filename}")
+
+        return True, str(dst)
+
+    except Exception as e:
+        return False, f"Failed to download {model_filename}: {str(e)}"
+
+
 def alternative_model_downloader(
     method, key, source, output_dir="models", progress=gr.Progress()
 ):
@@ -600,11 +677,12 @@ def roformer_separator(
     progress=gr.Progress(track_tqdm=True),
 ):
     roformer_model = roformer_models[model_key]
-    model_path = os.path.join(models_dir, roformer_model)
     try:
-        if not os.path.exists(model_path):
-            gr.Info(
-                f"This is the first time the {model_key} model is being used. The separation will take a little longer because the model needs to be downloaded."
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(roformer_model, progress)
+        if not success:
+            raise RuntimeError(
+                f"Failed to download model from modelscope {roformer_model}"
             )
 
         separator = Separator(
@@ -659,12 +737,11 @@ def mdxc_separator(
     single_stem,
     progress=gr.Progress(track_tqdm=True),
 ):
-    model_path = os.path.join(models_dir, model)
     try:
-        if not os.path.exists(model_path):
-            gr.Info(
-                f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-            )
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope {model}")
 
         separator = Separator(
             log_level=logging.WARNING,
@@ -719,12 +796,11 @@ def mdxnet_separator(
     single_stem,
     progress=gr.Progress(track_tqdm=True),
 ):
-    model_path = os.path.join(models_dir, model)
     try:
-        if not os.path.exists(model_path):
-            gr.Info(
-                f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-            )
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope {model}")
 
         separator = Separator(
             log_level=logging.WARNING,
@@ -778,12 +854,11 @@ def vrarch_separator(
     single_stem,
     progress=gr.Progress(track_tqdm=True),
 ):
-    model_path = os.path.join(models_dir, model)
     try:
-        if not os.path.exists(model_path):
-            gr.Info(
-                f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-            )
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope {model}")
 
         separator = Separator(
             log_level=logging.WARNING,
@@ -814,6 +889,7 @@ def vrarch_separator(
         stems = [os.path.join(out_dir, file_name) for file_name in separation]
 
         if single_stem.strip():
+        if single_stem.strip():
             return stems[0], None
 
         return stems[0], stems[1]
@@ -838,10 +914,10 @@ def demucs_separator(
 ):
     model_path = os.path.join(models_dir, model)
     try:
-        if not os.path.exists(model_path):
-            gr.Info(
-                f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-            )
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope {model}")
 
         separator = Separator(
             log_level=logging.WARNING,
@@ -909,13 +985,14 @@ def roformer_batch(
     found_files.clear()
     logs.clear()
     roformer_model = roformer_models[model_key]
-    model_path = os.path.join(models_dir, roformer_model)
-
-    if not os.path.exists(model_path):
-        gr.Info(
-            f"This is the first time the {model_key} model is being used. The separation will take a little longer because the model needs to be downloaded."
-        )
-
+    try:
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(roformer_model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope")
+    except Exception as e:
+        raise RuntimeError(f"Failed to download model {roformer_model}: {e}") from e
+    
     for audio_files in os.listdir(path_input):
         if audio_files.endswith(extensions):
             found_files.append(audio_files)
@@ -929,40 +1006,40 @@ def roformer_batch(
         found_files.sort()
         progress(0, desc="Starting processing...")
 
-        for i, audio_files in enumerate(found_files):
-            progress((i / total_files), desc=f"Processing file {i + 1}/{total_files}")
-            file_path = os.path.join(path_input, audio_files)
-            try:
-                separator = Separator(
-                    log_level=logging.WARNING,
-                    model_file_dir=models_dir,
-                    output_dir=path_output,
-                    output_format=out_format,
-                    use_autocast=use_autocast,
-                    normalization_threshold=norm_thresh,
-                    amplification_threshold=amp_thresh,
-                    output_single_stem=single_stem,
-                    mdxc_params={
-                        "segment_size": segment_size,
-                        "override_model_segment_size": override_seg_size,
-                        "batch_size": batch_size,
-                        "overlap": overlap,
-                    },
-                )
+    for i, audio_files in enumerate(found_files):
+        progress((i / total_files), desc=f"Processing file {i + 1}/{total_files}")
+        file_path = os.path.join(path_input, audio_files)
+        try:
+            separator = Separator(
+                log_level=logging.WARNING,
+                model_file_dir=models_dir,
+                output_dir=path_output,
+                output_format=out_format,
+                use_autocast=use_autocast,
+                normalization_threshold=norm_thresh,
+                amplification_threshold=amp_thresh,
+                output_single_stem=single_stem,
+                mdxc_params={
+                    "segment_size": segment_size,
+                    "override_model_segment_size": override_seg_size,
+                    "batch_size": batch_size,
+                    "overlap": overlap,
+                },
+            )
 
-                logs.append("Loading model...")
-                separator.load_model(model_filename=roformer_model)
+            logs.append("Loading model...")
+            separator.load_model(model_filename=roformer_model)
 
-                logs.append(f"Separating file: {audio_files}")
-                separator.separate(file_path)
-                logs.append(f"File: {audio_files} separated!")
-            except Exception as e:
-                raise RuntimeError(
-                    f"BS/Mel Roformer batch separation failed: {e}"
-                ) from e
+            logs.append(f"Separating file: {audio_files}")
+            separator.separate(file_path)
+            logs.append(f"File: {audio_files} separated!")
+        except Exception as e:
+            raise RuntimeError(
+                f"BS/Mel Roformer batch separation failed: {e}"
+            ) from e
 
-        progress(1.0, desc="Processing complete")
-        return "\n".join(logs)
+    progress(1.0, desc="Processing complete")
+    return "\n".join(logs)
 
 
 @track_presence("Performing MDXC Batch Separation")
@@ -982,12 +1059,13 @@ def mdx23c_batch(
 ):
     found_files.clear()
     logs.clear()
-    model_path = os.path.join(models_dir, model)
-
-    if not os.path.exists(model_path):
-        gr.Info(
-            f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-        )
+    try:
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope")
+    except Exception as e:
+        raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
     for audio_files in os.listdir(path_input):
         if audio_files.endswith(extensions):
@@ -1002,35 +1080,35 @@ def mdx23c_batch(
         found_files.sort()
         progress(0, desc="Starting processing...")
 
-        for i, audio_files in enumerate(found_files):
-            progress((i / total_files), desc=f"Processing file {i + 1}/{total_files}")
-            file_path = os.path.join(path_input, audio_files)
-            try:
-                separator = Separator(
-                    log_level=logging.WARNING,
-                    model_file_dir=models_dir,
-                    output_dir=path_output,
-                    output_format=out_format,
-                    use_autocast=use_autocast,
-                    normalization_threshold=norm_thresh,
-                    amplification_threshold=amp_thresh,
-                    output_single_stem=single_stem,
-                    mdxc_params={
-                        "segment_size": segment_size,
-                        "override_model_segment_size": override_seg_size,
-                        "batch_size": batch_size,
-                        "overlap": overlap,
-                    },
-                )
+    for i, audio_files in enumerate(found_files):
+        progress((i / total_files), desc=f"Processing file {i + 1}/{total_files}")
+        file_path = os.path.join(path_input, audio_files)
+        try:
+            separator = Separator(
+                log_level=logging.WARNING,
+                model_file_dir=models_dir,
+                output_dir=path_output,
+                output_format=out_format,
+                use_autocast=use_autocast,
+                normalization_threshold=norm_thresh,
+                amplification_threshold=amp_thresh,
+                output_single_stem=single_stem,
+                mdxc_params={
+                    "segment_size": segment_size,
+                    "override_model_segment_size": override_seg_size,
+                    "batch_size": batch_size,
+                    "overlap": overlap,
+                },
+            )
 
-                logs.append("Loading model...")
-                separator.load_model(model_filename=model)
+            logs.append("Loading model...")
+            separator.load_model(model_filename=model)
 
-                logs.append(f"Separating file: {audio_files}")
-                separator.separate(file_path)
-                logs.append(f"File: {audio_files} separated!")
-            except Exception as e:
-                raise RuntimeError(f"MDXC batch separation failed: {e}") from e
+            logs.append(f"Separating file: {audio_files}")
+            separator.separate(file_path)
+            logs.append(f"File: {audio_files} separated!")
+        except Exception as e:
+            raise RuntimeError(f"MDXC batch separation failed: {e}") from e
 
         progress(1.0, desc="Processing complete")
         return "\n".join(logs)
@@ -1056,10 +1134,13 @@ def mdxnet_batch(
     logs.clear()
     model_path = os.path.join(models_dir, model)
 
-    if not os.path.exists(model_path):
-        gr.Info(
-            f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-        )
+    try:
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope")
+    except Exception as e:
+        raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
     for audio_files in os.listdir(path_input):
         if audio_files.endswith(extensions):
@@ -1131,10 +1212,13 @@ def vrarch_batch(
     logs.clear()
     model_path = os.path.join(models_dir, model)
 
-    if not os.path.exists(model_path):
-        gr.Info(
-            f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-        )
+    try:
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope")
+    except Exception as e:
+        raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
     for audio_files in os.listdir(path_input):
         if audio_files.endswith(extensions):
@@ -1205,10 +1289,13 @@ def demucs_batch(
     logs.clear()
     model_path = os.path.join(models_dir, model)
 
-    if not os.path.exists(model_path):
-        gr.Info(
-            f"This is the first time the {model} model is being used. The separation will take a little longer because the model needs to be downloaded."
-        )
+    try:
+        # Ensure model is downloaded
+        success, model_path = ensure_model_downloaded(model, progress)
+        if not success:
+            raise RuntimeError(f"Failed to download model from modelscope")
+    except Exception as e:
+        raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
     for audio_files in os.listdir(path_input):
         if audio_files.endswith(extensions):
