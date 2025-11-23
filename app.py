@@ -889,7 +889,6 @@ def vrarch_separator(
         stems = [os.path.join(out_dir, file_name) for file_name in separation]
 
         if single_stem.strip():
-        if single_stem.strip():
             return stems[0], None
 
         return stems[0], stems[1]
@@ -992,7 +991,7 @@ def roformer_batch(
             raise RuntimeError(f"Failed to download model from modelscope")
     except Exception as e:
         raise RuntimeError(f"Failed to download model {roformer_model}: {e}") from e
-    
+
     for audio_files in os.listdir(path_input):
         if audio_files.endswith(extensions):
             found_files.append(audio_files)
@@ -1034,9 +1033,7 @@ def roformer_batch(
             separator.separate(file_path)
             logs.append(f"File: {audio_files} separated!")
         except Exception as e:
-            raise RuntimeError(
-                f"BS/Mel Roformer batch separation failed: {e}"
-            ) from e
+            raise RuntimeError(f"BS/Mel Roformer batch separation failed: {e}") from e
 
     progress(1.0, desc="Processing complete")
     return "\n".join(logs)
