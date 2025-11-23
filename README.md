@@ -2,7 +2,7 @@
 domain: #领域：cv/nlp/audio/multi-modal/AutoML
 # - cv
 tags: #自定义标签
--
+- stem-separation
 datasets: #关联数据集
   evaluation:
   #- iic/ICDAR13_HCTR_Dataset

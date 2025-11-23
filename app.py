@@ -426,12 +426,12 @@ def alternative_model_downloader(
         )
 
         try:
-            model_file_download(
+            model_dir = model_file_download(
                 model_id="OhMyDearAI/audio-separator-models",
                 file_path=f"{category}/{filename}",
                 local_dir=models_dir,
             )  # replace output_dir with models_dir
-            logs.append(f"Successfully downloaded {filename}.")
+            logs.append(f"Successfully downloaded {filename}. {model_dir}")
 
         except Exception as e:
             logs.append(f"Error running download command: {str(e)}")
