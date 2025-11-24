@@ -408,46 +408,51 @@ def ensure_model_downloaded(model_filename, progress=None):
             model_data = json.load(file)
 
         # 查找包含该文件名的模型条目和对应的URL
-        target_url = None
-        target_category = None
+        hf_url = None
+        arch = None
+        targets = []
 
         for key, entry in model_data.items():
             if isinstance(entry, dict):
                 # 使用HuggingFace URL来获取category信息
-                huggingface_urls = entry.get("HuggingFace", [])
-                for url in huggingface_urls:
+                hf_urls = entry.get("HuggingFace", [])
+                for url in hf_urls:
                     if model_filename in url:
-                        target_url = url
+                        hf_url = url
+                        targets.append((key, url))
                         break
 
-                if target_url:
+                if hf_url:
                     # 从URL中提取category
-                    target_category = urllib.parse.urlparse(target_url).path.split("/")[
-                        -2
+                    arch = urllib.parse.urlparse(hf_url).path.split("/")[-2]
+                    targets = [
+                        urllib.parse.urlparse(url).path.split("/")[-1]
+                        for url in hf_urls
                     ]
                     break
 
-        if not target_url or not target_category:
+        if (len(targets) == 0) or (not arch):
             return False, f"Model '{model_filename}' not found in models.json"
 
         # 使用ModelScope下载
         if progress:
             progress(0.5, desc=f"Downloading {model_filename}...")
 
-        # 使用与alternative_model_downloader相同的逻辑
-        tmp = model_file_download(
-            model_id="OhMyDearAI/audio-separator-models",
-            file_path=f"{target_category}/{model_filename}",
-            local_dir=models_dir,
-        )
+        for target in targets:
+            # 使用与alternative_model_downloader相同的逻辑
+            tmp = model_file_download(
+                model_id="OhMyDearAI/audio-separator-models",
+                file_path=f"{arch}/{target}",
+                local_dir=models_dir,
+            )
 
-        # 移动文件到正确位置（与alternative_model_downloader逻辑一致）
-        src = Path(tmp)
-        dst = Path(models_dir) / model_filename
-        shutil.move(str(src), str(dst))
+            # 移动文件到正确位置（与alternative_model_downloader逻辑一致）
+            src = Path(tmp)
+            dst = Path(models_dir) / target
+            shutil.move(str(src), str(dst))
 
-        # 删掉空出来的category目录
-        src.parent.rmdir()
+            # 删掉空出来的category目录
+            src.parent.rmdir()
 
         if progress:
             progress(1.0, desc=f"Downloaded {model_filename}")
@@ -988,7 +993,7 @@ def roformer_batch(
         # Ensure model is downloaded
         success, model_path = ensure_model_downloaded(roformer_model, progress)
         if not success:
-            raise RuntimeError(f"Failed to download model from modelscope")
+            raise RuntimeError("Failed to download model from modelscope")
     except Exception as e:
         raise RuntimeError(f"Failed to download model {roformer_model}: {e}") from e
 
@@ -1060,7 +1065,7 @@ def mdx23c_batch(
         # Ensure model is downloaded
         success, model_path = ensure_model_downloaded(model, progress)
         if not success:
-            raise RuntimeError(f"Failed to download model from modelscope")
+            raise RuntimeError("Failed to download model from modelscope")
     except Exception as e:
         raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
@@ -1135,7 +1140,7 @@ def mdxnet_batch(
         # Ensure model is downloaded
         success, model_path = ensure_model_downloaded(model, progress)
         if not success:
-            raise RuntimeError(f"Failed to download model from modelscope")
+            raise RuntimeError("Failed to download model from modelscope")
     except Exception as e:
         raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
@@ -1213,7 +1218,7 @@ def vrarch_batch(
         # Ensure model is downloaded
         success, model_path = ensure_model_downloaded(model, progress)
         if not success:
-            raise RuntimeError(f"Failed to download model from modelscope")
+            raise RuntimeError("Failed to download model from modelscope")
     except Exception as e:
         raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
@@ -1290,7 +1295,7 @@ def demucs_batch(
         # Ensure model is downloaded
         success, model_path = ensure_model_downloaded(model, progress)
         if not success:
-            raise RuntimeError(f"Failed to download model from modelscope")
+            raise RuntimeError("Failed to download model from modelscope")
     except Exception as e:
         raise RuntimeError(f"Failed to download model {model}: {e}") from e
 
